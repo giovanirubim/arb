@@ -1,0 +1,36 @@
+<html>
+	<head>
+		<title>Arb Analyzer</title>
+		<link rel="icon" href="img/icon16.png">
+		<link rel="stylesheet" type="text/css" href="css/style.css">
+		<script type="text/javascript" src="js/dfa.js"></script>
+		<script type="text/javascript" src="js/pda.js"></script>
+		<script type="text/javascript" src="js/arbLex.js"></script>
+		<script type="text/javascript" src="js/analyzeCode.js"></script>
+		<script type="text/javascript" src="js/getTree.js"></script>
+		<script type="text/javascript" src="js/script.js"></script>
+	</head>
+	<body>
+		<div id="topbar">
+			<div class="block-button">
+				<input type="file" id="upload" accept=".txt">
+			</div>
+			<div class="topbar-button">Upload</div>
+		</div>
+		<div id="code_display">
+			<textarea id="code_edit" spellcheck="false"></textarea>
+		</div>
+		<div id="error_display">
+			<div class="error-title">Analysis result:</div>
+			<div class="error-result">Ok.</div>
+		</div>
+		<div id="tree_display">
+			<div>
+				<div class="header-button full" tabindex="0" id="generate_tree">Generate syntactic tree</div>
+				<div class="header-button" tabindex="0" id="up">..</div>
+				<input type="text" id="path" class="header-path"/>
+			</div>
+			<div class="tree-files"></div>
+		</div>
+	</body>
+</html>

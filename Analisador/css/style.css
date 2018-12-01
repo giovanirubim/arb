@@ -1,0 +1,246 @@
+body {
+	margin: 0px;
+	font-size: 0px;
+	font-family: monospace;
+	background-color: #222;
+}
+
+#topbar .block-button {
+	position: absolute;
+	top: 5px;
+	left: 5px;
+	overflow: hidden;
+	height: 26px;
+	width: 60px;
+	background-color: transparent;
+	z-index: 2;
+	cursor: pointer;
+}
+
+#topbar .block-button input {
+	opacity: 0;
+	height: 26px;
+	cursor: pointer;
+}
+
+#topbar .topbar-button {
+	position: absolute;
+	top: 5px;
+	left: 5px;
+	height: 21px;
+	padding-top: 5px;
+	width: 60px;
+	z-index: 1;
+	font-size: 12px;
+	color: #fff;
+	text-align: center;
+	background-color: #333;
+}
+
+#topbar .content-text {
+	margin-bottom: -27px;
+}
+
+#topbar .content-text:hover {
+	background-color: #07f;
+}
+
+#topbar .block-content-text {
+	height: 27px;
+	font-size: 12px;
+	background-color: #777;
+}
+
+#topbar .block-content-text:hover {
+	background-color: #f70;
+}
+
+
+#error_display {
+	cursor: default;
+	background-color: #174;
+	position: absolute;
+	top: 37px;
+	right: 5px;
+	height: 200px;
+	width: 400px;
+	transition: background-color 0.25s;
+	-webkit-transition: background-color 0.25s;
+}
+
+#error_display.tlit {
+	background-color: #732;
+	cursor: pointer;
+}
+
+#error_display .error-title {
+	font-size: 20px;
+	color: #fff;
+	margin-top: 10px;
+	margin-left: 15px;
+	height: 25px;
+}
+
+#error_display .error-result {
+	font-size: 12px;
+	color: #fff;
+	margin-top: 10px;
+	margin-left: 15px;
+	margin-right: 15px;
+	height: 120px;
+	padding: 10px;
+	background-color: rgba(255,255,255,0.1);
+	border-radius: 10px;
+}
+
+#tree_display {
+	background-color: #eee;
+	position: absolute;
+	top: 242px;
+	right: 5px;
+	width: 400px;
+	bottom: 5px;
+}
+
+#tree_display div.header-button {
+	background-color: #444;
+	color: #fff;
+	cursor: pointer;
+	float: left;
+	font-size: 13px;
+	height: 21px;
+	margin-left: 5px;
+	margin-top: 5px;
+	padding-top: 5px;
+	text-align: center;
+	width: 26px;
+}
+
+#tree_display div.header-button::selection {
+	background-color: transparent;
+}
+
+#tree_display div.header-button.full {
+	width: 390px;
+}
+
+#tree_display div.header-button.disabled {
+	background-color: #666;
+	cursor: default;
+}
+
+#tree_display input.header-path {
+	width: 359px;
+	margin-top: 5px;
+	margin-left: 5px;
+	height: 26px;
+	outline: none;
+	font-family: monospace;
+	color: #444;
+	font-size: 12px;
+	padding-left: 4px;
+}
+
+#tree_display .tree-files {
+	position: absolute;
+	top: 62px;
+	left: 0px;
+	right: 0px;
+	bottom: 0px;
+	padding: 10px;
+	overflow: auto;
+}
+
+#tree_display .tree-files .tree-file {
+	padding: 10px;
+	margin: 5px;
+	box-shadow: -1px 1px 3px #777;
+	font-size: 12px;
+	cursor: default;
+	height: 16px;
+}
+
+#tree_display .tree-files .tree-file::selection,
+#tree_display .tree-files .tree-file div::selection {
+	background-color: transparent;
+}
+
+#tree_display .tree-files .tree-file.non-terminal {
+	background-color: #fd7;
+}
+
+#tree_display .tree-files .tree-file.terminal {
+	color: #068;
+	background-color: #4cf;
+}
+
+#tree_display .tree-files .tree-file.terminal div {
+	font-size: 10px;
+	color: #000;
+	display: inline-block;
+	background-color: #cff;
+	font-weight: bold;
+	padding-top: 2px;
+	margin: 0px 1px;
+	width: 15px;
+	text-align: center;
+	height: 17px;
+}
+
+#code_display {
+	top: 37px;
+	left: 5px;
+	right: 410px;
+	bottom: 5px;
+	position: absolute;
+}
+
+#code_display textarea {
+	font-size: 12px;
+	width: 100%;
+	height: 100%;
+	resize: none;
+	border: none;
+	padding: 10px;
+	outline: none;
+	-moz-tab-size : 4;
+	-o-tab-size : 4;
+	tab-size : 4;
+	background-color: #333;
+	color: #fff;
+}
+
+#code_wrap div.code-chr {
+	display: inline-block;
+}
+
+#code_wrap div.code-chr.tab {
+	width: 29px;
+}
+
+#code_wrap div.code-chr.space {
+	width: 7px;
+}
+
+@media only screen and (max-width: 900px) {
+	#error_display {
+		width: 300px;
+		height: 180px;
+	}
+	#error_display .error-result {
+		height: 100px;
+	}
+	#tree_display {
+		top: 222px;
+		width: 300px;
+	}
+	#tree_display div.header-button.full {
+		width: 290px;
+	}
+	#tree_display input.header-path {
+		width: 259px;
+	}
+	#code_display {
+		right: 310px;
+	}
+}
