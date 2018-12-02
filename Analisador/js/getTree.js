@@ -1115,12 +1115,13 @@ var getTree;
 	function read_expr_6(i) {
 		++ call_count;
 		var first = src[i];
-		var prefix;
+		var prefix, s;
 		if (first === "'" || first === "-") {
 			prefix = read_prefix(i);
+			s = read_s(i + prefix.length);
 		}
 		if (prefix) {
-			var expr = read_expr_7(i + prefix.length);
+			var expr = read_expr_7(i + prefix.length + s.length);
 		} else {
 			var expr = read_expr_7(i);
 		}
@@ -1128,8 +1129,8 @@ var getTree;
 			return {
 				pos: i,
 				name: "expr-6",
-				content: prefix ? [prefix, expr] : [expr],
-				length: (prefix ? prefix.length : 0) + expr.length
+				content: prefix ? [prefix, s, expr] : [expr],
+				length: (prefix ? prefix.length + s.length : 0) + expr.length
 			};
 		}
 	}
