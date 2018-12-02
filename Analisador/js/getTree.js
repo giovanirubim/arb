@@ -1344,7 +1344,6 @@ var getTree;
 		src = source;
 		call_count = 0;
 		var r = read_program(0);
-		console.log("Number of elements: " + nodeCount(r) + ", number of calls: " + call_count);
 		return r;
 	};
 

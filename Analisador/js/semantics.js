@@ -1,4 +1,4 @@
-var testTree;
+var testSemantics;
 
 (function(){
 
@@ -68,8 +68,7 @@ var testTree;
 		"@byte": true
 	};	
 	function typeIsCompatible(lType, rType) {
-		console.log(lType, rType);
-		if (lType === "real") {
+		if (lType === "@real") {
 			return isNumeric[rType];
 		}
 		if (isInteger[lType] && isInteger[rType]) {
@@ -87,7 +86,7 @@ var testTree;
 		return str;
 	}
 
-	testTree = function(tree) {
+	testSemantics = function(tree) {
 		processTree(tree);
 		var error = null;
 		function testProgram(node, escope) {
@@ -103,8 +102,41 @@ var testTree;
 		}
 		function testCmd(node, escope) {
 			if (node._declare) testDeclare(node._declare, escope);
-			if (error) return;
 			if (node._cmd_assign) testCmdAssign(node._cmd_assign, escope);
+			if (node._function) testFunction(node._function, escope);
+		}
+		function testArgs(node, escope, typeList, idList) {
+			while (node) {
+				var type = nodeToString(node._type);
+				var id = nodeToString(node._id);
+				if (idList.indexOf(id) >= 0) {
+					error = {
+						node: node,
+						message: "Argument " + id + " redeclared"
+					};
+					return;
+				}
+				escope.add(id, {type: type});
+				typeList.push(type);
+				idList.push(id);
+				node = node._args;
+			}
+		}
+		function testFunctionArgs(node, escope) {
+			var id = nodeToString(node._id);
+			var type = nodeToString(node._type);
+			var typeList = [];
+			var idList = [];
+			escope.add(id, {type: "function", args: typeList, type: type});
+			escope.add("@return", {type: type});
+			if (node._args) testArgs(node._args, escope, typeList, idList);
+			if (error) return;
+			testCmdList(node._cmd_list, escope);
+		}
+		function testFunction(node, escope) {
+			escope = new Escope(escope);
+			var fNode = node._function_args || node._function_no_args;
+			testFunctionArgs(fNode, escope);
 		}
 		function testDeclare(node, escope) {
 			var type = nodeToString(node._type);
@@ -149,22 +181,28 @@ var testTree;
 			}
 		}
 		function testAssign(node, escope) {
-			var l_value = node._l_value;
-			testLValue(l_value, escope);
+			var lValue = node._l_value;
+			testLValue(lValue, escope);
 			if (error) return;
-			var r_value = node._r_value;
-			testRValue(r_value, escope);
+			var rValue = node._r_value;
+			testRValue(rValue, escope);
 			if (error) return;
-			if (!typeIsCompatible(l_value.type, r_value.type)) {
+			if (!typeIsCompatible(lValue.type, rValue.type)) {
 				error = {
 					node: node,
-					message: "Incompatible assignment types"
+					message: rValue.type + " can't be converted to " + lValue.type
 				};
 			}
+			node.type = lValue.type;
+			node.value = rValue.value;
+			node.isConst = rValue.isConst;
 		}
 		function testRValue(node, escope) {
 			if (node._assign) {
 				testAssign(node._assign, escope);
+				node.type = node._assign.type;
+				node.value = node._assign.value;
+				node.isConst = node._assign.isConst;
 			}
 			if (node._expr_1) {
 				testExpr1(node._expr_1, escope);
@@ -187,6 +225,24 @@ var testTree;
 				node.type = rExpr.type;
 				return;
 			}
+			if (!isInteger[lExpr.type] || !isInteger[rExpr.type]) {
+				var target;
+				if (!isInteger[lExpr.type]) {
+					target = lExpr;
+				} else {
+					target = rExpr;
+				}
+				error = {
+					node: target,
+					message: target.type + " can't be used as boolean"
+				};
+				return;
+			}
+			node.type = "@byte";
+			if (lExpr.isConst && rExpr.isConst) {
+				node.isConst = true;
+				node.value = (lExpr.value !== 0 || rExpr.value !== 0)*1;
+			}
 		}
 		function testExpr2(node, escope) {
 			var lExpr = node._expr_2;
@@ -200,6 +256,24 @@ var testTree;
 				node.value = rExpr.value;
 				node.type = rExpr.type;
 				return;
+			}
+			if (!isInteger[lExpr.type] || !isInteger[rExpr.type]) {
+				var target;
+				if (!isInteger[lExpr.type]) {
+					target = lExpr;
+				} else {
+					target = rExpr;
+				}
+				error = {
+					node: target.type,
+					message: target.type + " can't be used as boolean"
+				};
+				return;
+			}
+			node.type = "@byte";
+			if (lExpr.isConst && rExpr.isConst) {
+				node.isConst = true;
+				node.value = (lExpr.value !== 0 && rExpr.value !== 0)*1;
 			}
 		}
 		function testExpr3(node, escope) {
@@ -215,6 +289,33 @@ var testTree;
 				node.type = rExpr.type;
 				return;
 			}
+			if (!isNumeric[lExpr.type] || !isNumeric[rExpr.type]) {
+				var op = nodeToString(node._opr_3);
+				var target;
+				if (!isNumeric[lExpr.type]) {
+					target = lExpr;
+				} else {
+					target = rExpr;
+				}
+				error = {
+					node: target,
+					message: "Operator " + op + " can't be applied to " + target.type
+				};
+				return;
+			}
+			node.type = "@byte";
+			if (lExpr.isConst && rExpr.isConst) {
+				node.isConst = true;
+				var op = nodeToString(node._opr_3);
+				var a = lExpr.value;
+				var b = rExpr.value;
+				if (op === ">=") node.value = (a >= b)*1;
+				if (op === "<=") node.value = (a <= b)*1;
+				if (op === "!=") node.value = (a != b)*1;
+				if (op === ">") node.value  = (a > b)*1;
+				if (op === "<") node.value  = (a < b)*1;
+				if (op === "=") node.value  = (a === b)*1;
+			}
 		}
 		function testExpr4(node, escope) {
 			var lExpr = node._expr_4;
@@ -229,6 +330,41 @@ var testTree;
 				node.type = rExpr.type;
 				return;
 			}
+			if (!isNumeric[lExpr.type] || !isNumeric[rExpr.type]) {
+				var target;
+				if (!isNumeric[lExpr.type]) {
+					target = lExpr.type;
+				} else {
+					target = rExpr.type;
+				}
+				var op = nodeToString(node._opr_4);
+				error = {
+					node: target,
+					message: "Operator " + op + " can't be applied to " + target.type
+				};
+				return;
+			}
+			if (lExpr.isConst && rExpr.isConst) {
+				node.isConst = true;
+				if (nodeToString(node._opr_4) === "+") {
+					node.value = lExpr.value + rExpr.value;
+				} else {
+					node.value = lExpr.value - rExpr.value;
+				}
+				if (node.value % 1 === 0) {
+					if (node.value >= 0 && node.value < 256) {
+						node.type = "@byte";
+					} else {
+						node.type = "@int";
+					}
+				} else {
+					node.type = "@real";
+				}
+			} else if (lExpr.type === "@real" || rExpr.type === "@real") {
+				node.type = "@real";
+			} else {
+				node.type = "@int";
+			}
 		}
 		function testExpr5(node, escope) {
 			var lExpr = node._expr_5;
@@ -242,6 +378,44 @@ var testTree;
 				node.value = rExpr.value;
 				node.type = rExpr.type;
 				return;
+			}
+			if (!isNumeric[lExpr.type] || !isNumeric[rExpr.type]) {
+				var target;
+				if (!isNumeric[lExpr.type]) {
+					target = lExpr.type;
+				} else {
+					target = rExpr.type;
+				}
+				var op = nodeToString(node._opr_5);
+				error = {
+					node: target,
+					message: "Operator " + op + " can't be applied to " + target.type
+				};
+				return;
+			}
+			var op = nodeToString(node._opr_5);
+			if (lExpr.isConst && rExpr.isConst) {
+				node.isConst = true;
+				var value;
+				if (op === "*") value = lExpr.value * rExpr.value;
+				if (op === "/") value = lExpr.value / rExpr.value;
+				if (op === "%") value = lExpr.value % rExpr.value;
+				if (value % 1 === 0) {
+					if (value >= 0 && value < 256) {
+						node.type = "@byte";
+					} else {
+						node.type = "@int";
+					}
+				} else {
+					node.type = "@real";
+				}
+				node.value = value;
+			} else if (lExpr.type === "@real" || rExpr.type === "@real" || op === "/") {
+				node.type = "@real";
+			} else if (lExpr.type === "@byte" && rExpr.type === "@byte" && op === "%") {
+				node.type = "@byte";
+			} else {
+				node.type = "@int";
 			}
 		}
 		function testExpr6(node, escope) {
@@ -259,7 +433,7 @@ var testTree;
 			if (prefix === "'" && !isInteger[expr.type]) {
 				error = {
 					node: node,
-					message: "The not prefix can't be applied to a non-integer value"
+					message: "The not prefix can't be applied to " + expr.type
 				};
 				return;
 			}
@@ -276,6 +450,23 @@ var testTree;
 				node.type = node._constant.type;
 				node.value = node._constant.value;
 				node.isConst = true;
+				return;
+			}
+			if (node._r_value) {
+				testRValue(node._r_value, escope);
+				if (error) return;
+				node.type = node._r_value.type;
+				node.value = node._r_value.value;
+				node.isConst = node._r_value.isConst;
+				return;
+			}
+			if (node._l_value) {
+				testLValue(node._l_value, escope);
+				if (error) return;
+				node.type = node._l_value.type;
+				node.value = node._l_value.value;
+				node.isConst = node._l_value.isConst;
+				return;
 			}
 		}
 		function testConstant(node) {
@@ -283,6 +474,7 @@ var testTree;
 				testNumber(node._number);
 				node.type = node._number.type;
 				node.value = node._number.value;
+				return;
 			}
 		}
 		function testNumber(node) {
@@ -297,7 +489,7 @@ var testTree;
 			node.value = value;
 		}
 		var escope = new Escope();
-		testProgram(tree._program, escope);
+		testProgram(tree, escope);
 		return error;
 	};
 

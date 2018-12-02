@@ -49,6 +49,7 @@ function removeClass(element, className) {
 // Gera a mensagem de erro e calcula sua posição
 function refreshError() {
 	current_error = analyzeCode(current_src);
+	current_tree = current_error.tree;
 	var text = "";
 	if (current_error.error) {
 		if (current_error.errorType === "lexical") {
@@ -74,6 +75,14 @@ function refreshError() {
 			} else {
 				text += "Unexpected end of source.\n";
 			}
+		} else if (current_error.errorType === "semantic") {
+			var token = current_error.token;
+			token.lastPos = token.pos + token.length;
+			text = "Semantic error: ";
+			text += current_error.message + ".\n";
+			var pos = calcPosition(current_error.token.pos);
+			text += "At line " + pos.row + " and column " + pos.col + ".\n";
+			current_error.target = pos;
 		}
 		text += "Time: " + current_error.time + "ms";
 		addClass(error_display, "tlit");
@@ -83,6 +92,7 @@ function refreshError() {
 		removeClass(error_display, "tlit");
 	}
 	error_display_result.innerText = text;
+	refreshTree();
 }
 
 // Prepara uma sub árvore para a exibição no display da árvore sintática
@@ -214,7 +224,7 @@ function tryPath(path) {
 
 // Atualiza a árvore sintática com o código fonte
 function refreshTree() {
-	current_tree = prepareTree(getTree(current_src));
+	current_tree = prepareTree(current_tree);
 	pathMap = current_tree.map;
 	openNode(pathMap[current_path] || current_tree.root);
 	tree_updated = true;
@@ -292,6 +302,23 @@ function filterFile(src) {
 	return result;
 }
 
+var timeoutCode = null;
+var autoAnalysisTimeout = 1500;
+function scheduleAutoAnalysis(value) {
+	if (timeoutCode !== null) {
+		clearTimeout(timeoutCode);
+	}
+	timeoutCode = setTimeout(function(){
+		if (setSource(value)) {
+			refreshError();
+			if (localStorage) {
+				localStorage.setItem("code", current_src);
+			}
+			timeoutCode = null;
+		}
+	}, autoAnalysisTimeout);
+}
+
 // Função utilizada ao carregar a página
 function onload() {
 	editor = document.querySelector("#code_edit");
@@ -301,7 +328,7 @@ function onload() {
 	path_input = document.querySelector("#path");
 
 	// Capturas de eventos
-	document.querySelector("#generate_tree").addEventListener("click", refreshTree);
+	// document.querySelector("#generate_tree").addEventListener("click", refreshTree);
 	document.querySelector("#upload").addEventListener("change", function(){
 		var file = this.files[0];
 		if (file) {
@@ -334,20 +361,15 @@ function onload() {
 			if (e.ctrlKey) {
 				e.preventDefault();
 				e.stopPropagation();
-				if (!tree_updated) {
-					refreshTree();
-				}
+				// if (!tree_updated) {
+				// 	refreshTree();
+				// }
 				findInTree(this.selectionStart, this.selectionEnd);
 			}
 		}
 	});
 	editor.addEventListener("keyup", function(){
-		if (setSource(this.value)) {
-			refreshError();
-			if (localStorage) {
-				localStorage.setItem("code", current_src);
-			}
-		}
+		scheduleAutoAnalysis(this.value);
 	});
 	error_display.addEventListener("click", targetError);
 	path_input.addEventListener("focus", function(){

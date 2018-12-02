@@ -284,18 +284,33 @@ var analyzeCode;
 			}
 			i = token.nextPos;
 		}
-		if (auto.accepts()) {
+		if (!auto.accepts()) {
 			return {
 				time: new Date() - ini_time,
-				error: false
-			}
+				error: true,
+				errorType: "syntactic",
+				token: token,
+				pos: src.length
+			};
+		}
+		var tree = getTree(src);
+		var semanticError = testSemantics(tree);
+		if (semanticError) {
+			var node = semanticError.node;
+			return {
+				time: new Date() - ini_time,
+				error: true,
+				errorType: "semantic",
+				token: node,
+				pos: node.pos,
+				tree: tree,
+				message: semanticError.message
+			};
 		}
 		return {
 			time: new Date() - ini_time,
-			error: true,
-			errorType: "syntactic",
-			token: token,
-			pos: src.length
+			error: false,
+			tree: tree
 		};
 	};
 
