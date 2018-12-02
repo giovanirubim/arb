@@ -3,9 +3,13 @@ var testSemantics;
 (function(){
 
 	/* Classe de escopo */
-	function Escope(parent) {
+	function Escope(parent, breakable) {
 		this.idMap = {};
 		this.parent = parent;
+		this.isBreakable = breakable || false;
+		var levels = (parent ? parent.breakableLevels : 0);
+		if (breakable) ++levels;
+		this.breakableLevels = levels;
 	}
 	Escope.prototype.find = function(id) {
 		var res = this.idMap[id];
@@ -67,11 +71,32 @@ var testSemantics;
 		"@int": true,
 		"@byte": true
 	};	
-	function typeIsCompatible(lType, rType) {
+	function callArgsCompatible(lArgs, rArgs) {
+		if (lArgs.length !== rArgs.length) return;
+		for (var i=0; i<lArgs.length; ++i) {
+			var lType = lArgs[i];
+			var rType = rArgs[i];
+			if (!assignTypesCompatible(lType, rType)) {
+				return false;
+			}
+		}
+		return true;
+	}
+	function assignTypesCompatible(lType, rType) {
+		if (!lType || !rType) return true;
 		if (lType === "@real") {
 			return isNumeric[rType];
 		}
 		if (isInteger[lType] && isInteger[rType]) {
+			return true;
+		}
+		if (lType.indexOf("[") >= 0 && rType.indexOf("[") > 0) {
+			var lSize = parseInt(lType.split("[")[1].split("]")[0]);
+			var rSize = parseInt(rType.split("[")[1].split("]")[0]);
+			lType = lType.split("[")[0];
+			rType = rType.split("[")[0];
+			if (lType !== rType) return false;
+			if (rSize > lSize) return false;
 			return true;
 		}
 		return lType === rType;
@@ -95,15 +120,59 @@ var testSemantics;
 		function testCmdAssign(node, escope) {
 			testAssign(node._assign, escope);
 		}
+		function testCmdCall(node, escope) {
+			testCall(node._call, escope);
+		}
 		function testCmdList(node, escope) {
 			testCmd(node._cmd, escope);
 			if (error) return;
 			if (node._cmd_list) testCmdList(node._cmd_list, escope);
 		}
+		function testBreak(node, escope) {
+			if (escope.breakableLevels === 0) {
+				error = {
+					node: node,
+					message: "Nothing to break from"
+				};
+				return;
+			}
+			if (!node._int) return;
+			var n = parseInt(nodeToString(node._int));
+			if (n <= escope.breakableLevels) return;
+			error = {
+				node: node,
+				message: "Too many levels to break"
+			};
+		}
+		function testLoop(node, escope) {
+			var innerEscope = new Escope(escope, true);
+			testCmdList(node._cmd_list, innerEscope);
+		}
+		function testForkHead(node, escope) {
+			testRValue(node._r_value, escope);
+		}
+		function testForkBody(node, escope) {
+			if (node._case_true) testCase(node._case_true, escope);
+			if (error) return;
+			if (node._case_false) testCase(node._case_false, escope);
+		}
+		function testCase(node, escope) {
+			var innerEscope = new Escope(escope);
+			testCmdList(node._cmd_list, innerEscope);
+		}
+		function testFork(node, escope) {
+			testForkHead(node._fork_head, escope);
+			if (error) return;
+			testForkBody(node._fork_body, escope);
+		}
 		function testCmd(node, escope) {
 			if (node._declare) testDeclare(node._declare, escope);
 			if (node._cmd_assign) testCmdAssign(node._cmd_assign, escope);
 			if (node._function) testFunction(node._function, escope);
+			if (node._cmd_call) testCmdCall(node._cmd_call, escope);
+			if (node._break) testBreak(node._break, escope);
+			if (node._loop) testLoop(node._loop, escope);
+			if (node._fork) testFork(node._fork, escope);
 		}
 		function testArgs(node, escope, typeList, idList) {
 			while (node) {
@@ -127,14 +196,14 @@ var testSemantics;
 			var type = nodeToString(node._type);
 			var typeList = [];
 			var idList = [];
-			escope.add(id, {type: "function", args: typeList, type: type});
-			escope.add("@return", {type: type});
-			if (node._args) testArgs(node._args, escope, typeList, idList);
+			escope.add(id, {isFunction: true, args: typeList, type: type});
+			innerEscope = new Escope(escope, true);
+			innerEscope.add("@return", {type: type});
+			if (node._args) testArgs(node._args, innerEscope, typeList, idList);
 			if (error) return;
-			testCmdList(node._cmd_list, escope);
+			testCmdList(node._cmd_list, innerEscope);
 		}
 		function testFunction(node, escope) {
-			escope = new Escope(escope);
 			var fNode = node._function_args || node._function_no_args;
 			testFunctionArgs(fNode, escope);
 		}
@@ -151,7 +220,16 @@ var testSemantics;
 			var id = nodeToString(node._id);
 			node.type = type;
 			escope.add(id, node);
-			if (!node._r_value) return;
+			var rValue = node._r_value;
+			if (!rValue) return;
+			testRValue(rValue, escope);
+			if (error) return;
+			if (!assignTypesCompatible(type, rValue.type)) {
+				error = {
+					node: node,
+					message: rValue.type + " can't be converted into " + type
+				};
+			}
 		}
 		function testLValue(node, escope) {
 			if (node["has:@return"]) {
@@ -179,6 +257,49 @@ var testSemantics;
 				node.type = obj.type;
 				return;
 			}
+			if (node._index_access) {
+				testIndexAcess(node._index_access, escope);
+				if (error) return;
+				node.type = node._index_access.type;
+			}
+		}
+		function testCallArgs(node, escope, typeList) {
+			var rValue = node._r_value;
+			testRValue(rValue, escope);
+			if (error) return;
+			typeList.push(rValue.type);
+			if (node._call_args) testCallArgs(node._call_args, escope, typeList);
+		}
+		function testCall(node, escope) {
+			var id = nodeToString(node._id);
+			var obj = escope.find(id);
+			if (!obj) {
+				error = {
+					node: node._id,
+					message: "Undeclared " + id
+				};
+				return;
+			}
+			if (!obj.isFunction) {
+				error = {
+					node: node._id,
+					message: id + " is not a function"
+				};
+				return;
+			}
+			node.type = obj.type;
+			var typeList = [];
+			if (node._call_args) {
+				testCallArgs(node._call_args, escope, typeList);
+				if (error) return;
+			}
+			if (!callArgsCompatible(obj.args, typeList)) {
+				error = {
+					node: node,
+					message: "Incompatible arguments for function " + id + "(" + obj.args.join(", ")
+						+ ")"
+				};
+			}
 		}
 		function testAssign(node, escope) {
 			var lValue = node._l_value;
@@ -187,10 +308,10 @@ var testSemantics;
 			var rValue = node._r_value;
 			testRValue(rValue, escope);
 			if (error) return;
-			if (!typeIsCompatible(lValue.type, rValue.type)) {
+			if (!assignTypesCompatible(lValue.type, rValue.type)) {
 				error = {
 					node: node,
-					message: rValue.type + " can't be converted to " + lValue.type
+					message: rValue.type + " can't be converted into " + lValue.type
 				};
 			}
 			node.type = lValue.type;
@@ -468,12 +589,78 @@ var testSemantics;
 				node.isConst = node._l_value.isConst;
 				return;
 			}
+			if (node._call) {
+				testCall(node._call, escope);
+				if (error) return;
+				node.type = node._call.type;
+			}
+		}
+		function testIndexAcess(node, escope) {
+			var id = nodeToString(node._id);
+			var obj = escope.find(id);
+			if (!obj) {
+				error = {
+					node: node._id,
+					message: "Undeclared " + id
+				};
+				return;
+			}
+			if (obj.type.indexOf("[") < 0) {
+				error = {
+					node: node._id,
+					message: "Can't access index of a non-array type"
+				};
+				return;
+			}
+			var type = obj.type.split("[")[0];
+			var rValue = node._r_value;
+			testRValue(rValue, escope);
+			if (error) return;
+			if (!isInteger[rValue.type]) {
+				error = {
+					node: rValue,
+					message: "Can't use a non-integer value to access an index"
+				};
+				return;
+			}
+			node.type = type;
+		}
+		function testBoolean(node) {
+			if (node["has:@true"]) {
+				node.value = 1;
+			} else {
+				node.value = 0;
+			}
+			node.type = "@byte";
+		}
+		function testString(node) {
+			var str = nodeToString(node);
+			str = str.substr(0, str.length - 2);
+			var value = [];
+			for (var i=0; i<str.length; ++i) {
+				value.push(str.charCodeAt(i));
+			}
+			value.push(0);
+			node.value = value;
+			node.type = "@byte[" + value.length + "]";
 		}
 		function testConstant(node) {
 			if (node._number) {
 				testNumber(node._number);
 				node.type = node._number.type;
 				node.value = node._number.value;
+				return;
+			}
+			if (node._boolean) {
+				testBoolean(node._boolean);
+				node.type = node._boolean.type;
+				node.value = node._boolean.value;
+				return;
+			}
+			if (node._string) {
+				testString(node._string);
+				node.type = node._string.type;
+				node.value = node._string.value;
 				return;
 			}
 		}
