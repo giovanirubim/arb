@@ -64,13 +64,18 @@ body {
 	right: 5px;
 	height: 200px;
 	width: 400px;
-	transition: background-color 0.25s;
-	-webkit-transition: background-color 0.25s;
+	transition: background-color 0.5s;
+	-webkit-transition: background-color 0.5s;
 }
 
 #error_display.tlit {
 	background-color: #732;
 	cursor: pointer;
+}
+
+#error_display.waiting {
+	background-color: #555;
+	cursor: default;
 }
 
 #error_display .error-title {

@@ -26,6 +26,10 @@ function calcPosition(pos) {
 	return {col: col, row: row};
 }
 
+function hasClass(element, className) {
+	return (element.getAttribute("class")||"").split(" ").indexOf(className) >= 0;
+}
+
 // Adiciona a um DOMElement uma classe
 function addClass(element, className) {
 	var array = (element.getAttribute("class") || "").split(" ");
@@ -308,13 +312,18 @@ function scheduleAutoAnalysis(value) {
 	if (timeoutCode !== null) {
 		clearTimeout(timeoutCode);
 	}
+	removeClass(error_display, "tlit");
+	addClass(error_display, "waiting");
 	timeoutCode = setTimeout(function(){
+		timeoutCode = null;
+		removeClass(error_display, "waiting");
 		if (setSource(value)) {
 			refreshError();
 			if (localStorage) {
 				localStorage.setItem("code", current_src);
 			}
-			timeoutCode = null;
+		} else if (current_error) {
+			addClass(error_display, "tlit");
 		}
 	}, autoAnalysisTimeout);
 }
