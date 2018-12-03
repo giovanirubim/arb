@@ -11,7 +11,7 @@ var folder_up_button;
 var tree_updated = false;
 var path_input;
 
-// Calcula linha e coluna de determinada posição do código fonte
+/* Calcula linha e coluna de determinada posição do código fonte */
 function calcPosition(pos) {
 	var col = 1;
 	var row = 1;
@@ -26,11 +26,12 @@ function calcPosition(pos) {
 	return {col: col, row: row};
 }
 
+/* Verifica se um DOMElement possui uma determinada classe */
 function hasClass(element, className) {
 	return (element.getAttribute("class")||"").split(" ").indexOf(className) >= 0;
 }
 
-// Adiciona a um DOMElement uma classe
+/* Adiciona a um DOMElement uma classe */
 function addClass(element, className) {
 	var array = (element.getAttribute("class") || "").split(" ");
 	if (array.indexOf(className)<0) {
@@ -39,7 +40,7 @@ function addClass(element, className) {
 	}
 }
 
-// Remove de um DOMElement uma classe
+/* Remove de um DOMElement uma classe */
 function removeClass(element, className) {
 	var array = (element.getAttribute("class") || "").split(" ");
 	var i = array.indexOf(className);
@@ -49,14 +50,22 @@ function removeClass(element, className) {
 	}
 }
 
-// Analisa o código fonte e atualiza a variável gloval "current_error"
-// Gera a mensagem de erro e calcula sua posição
+/* Analisa o código fonte e atualiza a variável gloval "current_error"
+ * Gera a mensagem de erro e calcula sua posição */
 function refreshError() {
 	current_error = analyzeCode(current_src);
 	current_tree = current_error.tree;
+
+	/* Texto para o display do resultado da compilação */
 	var text = "";
+
 	if (current_error.error) {
+
+		/* Caso haja erro detectado */
+
 		if (current_error.errorType === "lexical") {
+
+			/* Trata exibição de erro léxico */
 			text = "Lexical error: ";
 			var chrPos = current_error.token.lastPos;
 			if (chrPos < current_src.length) {
@@ -68,6 +77,8 @@ function refreshError() {
 				text += "Unexpected end of file.\n";
 			}
 		} else if (current_error.errorType === "syntactic") {
+
+			/* Trata exibição de erro sintático */
 			text = "Syntactic error: ";
 			if (current_error.pos < current_src.length) {
 				var token_str = current_error.token.str;
@@ -80,6 +91,8 @@ function refreshError() {
 				text += "Unexpected end of source.\n";
 			}
 		} else if (current_error.errorType === "semantic") {
+
+			/* Trata exibição de erro semântico */
 			var token = current_error.token;
 			token.lastPos = token.pos + token.length;
 			text = "Semantic error: ";
@@ -89,18 +102,24 @@ function refreshError() {
 			current_error.target = pos;
 		}
 		text += "Time: " + current_error.time + "ms";
+
+		/* Define a aparência do display de erros como com erros (tlit) */
 		addClass(error_display, "tlit");
 	} else {
 		text = "Ok.\nTime: " + current_error.time + "ms";
 		current_error = null;
+
+		/* Define a aparência do display de erros como sem erros */
 		removeClass(error_display, "tlit");
 	}
 	error_display_result.innerText = text;
+	
+	/* Atualiza o sistema de diretórios usado para explorar a árvore */
 	refreshTree();
 }
 
-// Prepara uma sub árvore para a exibição no display da árvore sintática
-// Conecta nós aos pais (raiz) e gera um mapa de caminhos
+/* Prepara uma sub árvore para a exibição no display da árvore sintática
+ * Conecta nós aos pais (raiz) e gera um mapa de caminhos */
 function prepareSubTree(node, parent, path, pathMap) {
 	node.parent = parent;
 	path += node.name + "/";
@@ -115,8 +134,8 @@ function prepareSubTree(node, parent, path, pathMap) {
 	}
 }
 
-// Prepara uma árvore para a exibição no display da árvore sintática
-// Conecta nós aos pais (raiz) e gera um mapa de caminhos
+/* Prepara uma árvore para a exibição no display da árvore sintática
+ * Conecta nós aos pais (raiz) e gera um mapa de caminhos */
 function prepareTree(tree) {
 	var pathMap = {};
 	var root = {
@@ -132,7 +151,7 @@ function prepareTree(tree) {
 	};
 }
 
-// Define o caminho atual do display da árvore sintática
+/* Define o caminho atual do display da árvore sintática */
 function setPath(path) {
 	current_path = path;
 	var result = "";
@@ -150,11 +169,12 @@ function setPath(path) {
 	}
 }
 
-// Abre um nó da árvore sintática
+/* Abre um nó da árvore sintática */
 function openNode(node) {
 	current_node = node;
 	setPath(node.path);
-	// Cria um DOMElement para um terminal
+	
+	/* Cria um DOMElement para um terminal */
  	function createChar(chr) {
 		if (chr === "\n") {
 			chr = "\\n";
@@ -165,7 +185,8 @@ function openNode(node) {
 		div.innerText = chr;
 		return div;
 	}
-	// Cria um "arquivo" para o display da árvore sintática
+	
+	/* Cria um "arquivo" para o display da árvore sintática */
 	function createFile(item, pos) {
 		var file = document.createElement("div");
 		var isTerminal = typeof item === "string";
@@ -218,7 +239,7 @@ function openNode(node) {
 	}
 }
 
-// Tenta abrir determiando caminho da árvore sintática
+/* Tenta abrir determiando caminho da árvore sintática */
 function tryPath(path) {
 	var node = pathMap[path] || pathMap[path + "/"];
 	if (node) {
@@ -226,7 +247,7 @@ function tryPath(path) {
 	}
 }
 
-// Atualiza a árvore sintática com o código fonte
+/* Atualiza a árvore sintática com o código fonte */
 function refreshTree() {
 	current_tree = prepareTree(current_tree);
 	pathMap = current_tree.map;
@@ -234,7 +255,7 @@ function refreshTree() {
 	tree_updated = true;
 }
 
-// Atualiza o código fonte
+/* Atualiza o código fonte */
 function setSource(src) {
 	if (src != current_src) {
 		current_src = src;
@@ -244,14 +265,14 @@ function setSource(src) {
 	return false;
 }
 
-// Seleciona no código fonte um segmento do código
+/* Seleciona no código fonte um segmento do código */
 function showSlice(a, b) {
 	editor.focus();
 	editor.selectionStart = a;
 	editor.selectionEnd = b;
 }
 
-// Seleciona no código fonte o erro atual da análise
+/* Seleciona no código fonte o erro atual da análise */
 function targetError() {
 	if (!current_error) {
 		return;
@@ -266,8 +287,8 @@ function targetError() {
 	}
 }
 
-// Busca na árvore qual o nó mais baixo (longe da raiz) que corresponde a área do código
-// especificada
+/* Busca na árvore qual o nó mais baixo (longe da raiz) que corresponde a área do código
+ * especificada */
 function findInTree(start, end) {
 	end = Math.min(end, current_src.length);
 	function find(node) {
@@ -294,7 +315,7 @@ function findInTree(start, end) {
 	}
 }
 
-// Remove os caracteres \r do texto
+/* Remove os caracteres \r do texto */
 function filterFile(src) {
 	var result = "";
 	for (var i=0; i<src.length; ++i) {
@@ -306,8 +327,13 @@ function filterFile(src) {
 	return result;
 }
 
+/* Código do timeout da autoanálise */
 var timeoutCode = null;
+
+/* Tempo de espera para iniciar a autoanálise */
 var autoAnalysisTimeout = 1500;
+
+/* Agenda a autoanálise do código */
 function scheduleAutoAnalysis(value) {
 	if (timeoutCode !== null) {
 		clearTimeout(timeoutCode);
@@ -328,7 +354,7 @@ function scheduleAutoAnalysis(value) {
 	}, autoAnalysisTimeout);
 }
 
-// Função utilizada ao carregar a página
+/* Função utilizada ao carregar a página */
 function onload() {
 	editor = document.querySelector("#code_edit");
 	folder_up_button = document.querySelector("#up");
@@ -336,8 +362,8 @@ function onload() {
 	error_display_result = document.querySelector("#error_display .error-result");
 	path_input = document.querySelector("#path");
 
-	// Capturas de eventos
-	// document.querySelector("#generate_tree").addEventListener("click", refreshTree);
+	
+	/* Capturas de eventos */
 	document.querySelector("#upload").addEventListener("change", function(){
 		var file = this.files[0];
 		if (file) {
@@ -370,9 +396,6 @@ function onload() {
 			if (e.ctrlKey) {
 				e.preventDefault();
 				e.stopPropagation();
-				// if (!tree_updated) {
-				// 	refreshTree();
-				// }
 				findInTree(this.selectionStart, this.selectionEnd);
 			}
 		}
@@ -409,14 +432,14 @@ function onload() {
 			showSlice(current_node.pos, current_node.pos + current_node.length);
 		}
 	});
-
-	// Recupera se puder o último código aberto neste browser
+	
+	/* Recupera se puder o último código aberto neste browser */
 	if (localStorage) {
 		current_src = localStorage.getItem("code") || "";
 		editor.value = current_src;
 	}
-
-	// Inicializa recursos gráficos
+	
+	/* Inicializa recursos gráficos */
 	var tree = prepareTree(null);
 	openNode(tree.root);
 	pathMap = tree.map;

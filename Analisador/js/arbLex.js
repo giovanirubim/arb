@@ -1,13 +1,22 @@
 // Autômato que realiza a análise léxica da linguagem Arb
 var arbLex;
 
+/* Gera o autômato arbLax */
 (function(){
 
+	/* Inicializa um autômato finito determinístico vazio */
 	var dfa = new DFA();
 
+	/* Vetor de dígitos */
 	var digit = "0123456789".split("");
+
+	/* Vetor de letras */
 	var letter = [];
+
+	/* Vetor contendo os caracteres textuais aceitos pela gramática Arb */
 	var text_char = [];
+
+	/* Preenche os vetores letter e text_char */
 	for (var i=32; i<127; ++i) {
 		var chr = String.fromCharCode(i);
 		if (chr >= "a" && chr <= "z" || chr >= "A" && chr <= "Z") {
@@ -18,6 +27,7 @@ var arbLex;
 		}
 	}
 
+	/* Constrói o autômato */
 	dfa.setIni("0");
 	dfa.add("0","!","55");
 	dfa.add("0","'","4");
@@ -85,6 +95,7 @@ var arbLex;
 	dfa.add("54",text_char,"54");
 	dfa.add("55","=","8");
 	
+	/* Define os estados do 1 ao 26 como estados finais */
 	for (var i=1; i<=26; ++i) {
 		dfa.addEnd(i);
 	}

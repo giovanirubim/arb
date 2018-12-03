@@ -1,3 +1,4 @@
+/* Função que testa a semântica de uma árvore sintática e retorna um objeto de erro */
 var testSemantics;
 
 (function(){
@@ -18,9 +19,6 @@ var testSemantics;
 	};
 	Escope.prototype.add = function(id, obj) {
 		this.idMap[id] = obj;
-	};
-	Escope.prototype.has = function(id) {
-		return !this.idMap.hasOwnProperty(id);
 	};
 
 	/* Cria um nome diferente para o nó, substituindo os traços por underscore e iniciando em
@@ -57,6 +55,7 @@ var testSemantics;
 		}
 	}
 
+	/* Mapas para as verificações rápidas de tipos */
 	var isPrimitive = {
 		"@real": true,
 		"@int": true,
@@ -71,17 +70,8 @@ var testSemantics;
 		"@int": true,
 		"@byte": true
 	};	
-	function callArgsCompatible(lArgs, rArgs) {
-		if (lArgs.length !== rArgs.length) return;
-		for (var i=0; i<lArgs.length; ++i) {
-			var lType = lArgs[i];
-			var rType = rArgs[i];
-			if (!assignTypesCompatible(lType, rType)) {
-				return false;
-			}
-		}
-		return true;
-	}
+
+	/* Verifica a compatibilidade de tipos na atribuição */
 	function assignTypesCompatible(lType, rType) {
 		if (!lType || !rType) return true;
 		if (lType === "@real") {
@@ -101,6 +91,21 @@ var testSemantics;
 		}
 		return lType === rType;
 	}
+
+	/* Verifica a compatibilidade de argumentos de chamada */
+	function callArgsCompatible(lArgs, rArgs) {
+		if (lArgs.length !== rArgs.length) return;
+		for (var i=0; i<lArgs.length; ++i) {
+			var lType = lArgs[i];
+			var rType = rArgs[i];
+			if (!assignTypesCompatible(lType, rType)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/* Retorna a string contendo a concatenação de todos os temrinais do nó da árvore sintática */
 	function nodeToString(node) {
 		if (typeof node === "string") return node;
 		var array = node.content;
@@ -112,22 +117,37 @@ var testSemantics;
 	}
 
 	testSemantics = function(tree) {
+		
+		/* Pré-processa a árvore para um acesso mais fácil aos nós filhos */
 		processTree(tree);
+
+		/* Variável a ser retornada */
 		var error = null;
+
+
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <program> */
 		function testProgram(node, escope) {
 			if (node._cmd_list) testCmdList(node._cmd_list, escope);
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <cmd-assign> */
 		function testCmdAssign(node, escope) {
 			testAssign(node._assign, escope);
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <cmd-call> */
 		function testCmdCall(node, escope) {
 			testCall(node._call, escope);
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <cmd-list> */
 		function testCmdList(node, escope) {
 			testCmd(node._cmd, escope);
 			if (error) return;
 			if (node._cmd_list) testCmdList(node._cmd_list, escope);
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <break> */
 		function testBreak(node, escope) {
 			if (escope.breakableLevels === 0) {
 				error = {
@@ -144,36 +164,60 @@ var testSemantics;
 				message: "Too many levels to break"
 			};
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <loop> */
 		function testLoop(node, escope) {
 			var innerEscope = new Escope(escope, true);
 			testCmdList(node._cmd_list, innerEscope);
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <fork-head> */
 		function testForkHead(node, escope) {
 			testRValue(node._r_value, escope);
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <fork-body> */
 		function testForkBody(node, escope) {
 			if (node._case_true) testCase(node._case_true, escope);
 			if (error) return;
 			if (node._case_false) testCase(node._case_false, escope);
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <case> */
 		function testCase(node, escope) {
 			var innerEscope = new Escope(escope);
 			testCmdList(node._cmd_list, innerEscope);
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <fork> */
 		function testFork(node, escope) {
 			testForkHead(node._fork_head, escope);
 			if (error) return;
 			testForkBody(node._fork_body, escope);
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <cmd> */
 		function testCmd(node, escope) {
-			if (node._declare) testDeclare(node._declare, escope);
-			if (node._cmd_assign) testCmdAssign(node._cmd_assign, escope);
-			if (node._function) testFunction(node._function, escope);
-			if (node._cmd_call) testCmdCall(node._cmd_call, escope);
-			if (node._break) testBreak(node._break, escope);
-			if (node._loop) testLoop(node._loop, escope);
-			if (node._fork) testFork(node._fork, escope);
+			if (node._declare) {
+				testDeclare(node._declare, escope);
+			} else if (node._cmd_assign) {
+				testCmdAssign(node._cmd_assign, escope);
+			} else if (node._function) {
+				testFunction(node._function, escope);
+			} else if (node._cmd_call) {
+				testCmdCall(node._cmd_call, escope);
+			} else if (node._break) {
+				testBreak(node._break, escope);
+			} else if (node._loop) {
+				testLoop(node._loop, escope);
+			} else if (node._fork) {
+				testFork(node._fork, escope);
+			}
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <args>
+		 * Insere no vetor typeList uma lista de tipos dos parâmetros lidos
+		 * Insere no vetor idList uma lista de identificadores dos parâmetros lidos */
 		function testArgs(node, escope, typeList, idList) {
 			while (node) {
 				var type = nodeToString(node._type);
@@ -181,7 +225,7 @@ var testSemantics;
 				if (idList.indexOf(id) >= 0) {
 					error = {
 						node: node,
-						message: "Argument " + id + " redeclared"
+						message: "Argument " + id + " declared twice"
 					};
 					return;
 				}
@@ -191,6 +235,8 @@ var testSemantics;
 				node = node._args;
 			}
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <function-args> */
 		function testFunctionArgs(node, escope) {
 			var id = nodeToString(node._id);
 			var type = nodeToString(node._type);
@@ -203,19 +249,29 @@ var testSemantics;
 			if (error) return;
 			testCmdList(node._cmd_list, innerEscope);
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <function> */
 		function testFunction(node, escope) {
 			var fNode = node._function_args || node._function_no_args;
 			testFunctionArgs(fNode, escope);
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <declare> */
 		function testDeclare(node, escope) {
 			var type = nodeToString(node._type);
 			testDeclareList(node._declare_list, escope, type);
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <declare-list>
+		 * Requer o tipo sendo declarado */
 		function testDeclareList(node, escope, type) {
 			testDeclareItem(node._declare_item, escope, type);
 			if (error || !node._declare_list) return;
 			testDeclareList(node._declare_list, escope, type);
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <declare-item>
+		 * Requer o tipo sendo declarado */
 		function testDeclareItem(node, escope, type) {
 			var id = nodeToString(node._id);
 			node.type = type;
@@ -231,6 +287,8 @@ var testSemantics;
 				};
 			}
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <l-value> */
 		function testLValue(node, escope) {
 			if (node["has:@return"]) {
 				var obj = escope.find("@return");
@@ -263,6 +321,9 @@ var testSemantics;
 				node.type = node._index_access.type;
 			}
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <call-args>
+		 * Insere no vetor typeList os tipos lidos */
 		function testCallArgs(node, escope, typeList) {
 			var rValue = node._r_value;
 			testRValue(rValue, escope);
@@ -270,6 +331,8 @@ var testSemantics;
 			typeList.push(rValue.type);
 			if (node._call_args) testCallArgs(node._call_args, escope, typeList);
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <call> */
 		function testCall(node, escope) {
 			var id = nodeToString(node._id);
 			var obj = escope.find(id);
@@ -301,6 +364,8 @@ var testSemantics;
 				};
 			}
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <assign> */
 		function testAssign(node, escope) {
 			var lValue = node._l_value;
 			testLValue(lValue, escope);
@@ -318,6 +383,8 @@ var testSemantics;
 			node.value = rValue.value;
 			node.isConst = rValue.isConst;
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <r-value> */
 		function testRValue(node, escope) {
 			if (node._assign) {
 				testAssign(node._assign, escope);
@@ -333,6 +400,8 @@ var testSemantics;
 				return;
 			}
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <expr-1> */
 		function testExpr1(node, escope) {
 			var lExpr = node._expr_1;
 			var rExpr = node._expr_2;
@@ -365,6 +434,8 @@ var testSemantics;
 				node.value = (lExpr.value !== 0 || rExpr.value !== 0)*1;
 			}
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <expr-2> */
 		function testExpr2(node, escope) {
 			var lExpr = node._expr_2;
 			var rExpr = node._expr_3;
@@ -397,6 +468,8 @@ var testSemantics;
 				node.value = (lExpr.value !== 0 && rExpr.value !== 0)*1;
 			}
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <expr-3> */
 		function testExpr3(node, escope) {
 			var lExpr = node._expr_3;
 			var rExpr = node._expr_4;
@@ -430,14 +503,23 @@ var testSemantics;
 				var op = nodeToString(node._opr_3);
 				var a = lExpr.value;
 				var b = rExpr.value;
-				if (op === ">=") node.value = (a >= b)*1;
-				if (op === "<=") node.value = (a <= b)*1;
-				if (op === "!=") node.value = (a != b)*1;
-				if (op === ">") node.value  = (a > b)*1;
-				if (op === "<") node.value  = (a < b)*1;
-				if (op === "=") node.value  = (a === b)*1;
+				if (op === ">=") {
+					node.value = (a >= b)*1;
+				} else if (op === "<=") {
+					node.value = (a <= b)*1;
+				} else if (op === "!=") {
+					node.value = (a != b)*1;
+				} else if (op === ">") {
+					node.value  = (a > b)*1;
+				} else if (op === "<") {
+					node.value  = (a < b)*1;
+				} else if (op === "=") {
+					node.value  = (a === b)*1;
+				}
 			}
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <expr-4> */
 		function testExpr4(node, escope) {
 			var lExpr = node._expr_4;
 			var rExpr = node._expr_5;
@@ -487,6 +569,8 @@ var testSemantics;
 				node.type = "@int";
 			}
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <expr-5> */
 		function testExpr5(node, escope) {
 			var lExpr = node._expr_5;
 			var rExpr = node._expr_6;
@@ -518,9 +602,13 @@ var testSemantics;
 			if (lExpr.isConst && rExpr.isConst) {
 				node.isConst = true;
 				var value;
-				if (op === "*") value = lExpr.value * rExpr.value;
-				if (op === "/") value = lExpr.value / rExpr.value;
-				if (op === "%") value = lExpr.value % rExpr.value;
+				if (op === "*") {
+					value = lExpr.value * rExpr.value;
+				} else if (op === "/") {
+					value = lExpr.value / rExpr.value;
+				} else if (op === "%") {
+					value = lExpr.value % rExpr.value;
+				}
 				if (value % 1 === 0) {
 					if (value >= 0 && value < 256) {
 						node.type = "@byte";
@@ -539,6 +627,8 @@ var testSemantics;
 				node.type = "@int";
 			}
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <expr-6> */
 		function testExpr6(node, escope) {
 			var expr = node._expr_7;
 			testExpr7(expr, escope);
@@ -565,36 +655,31 @@ var testSemantics;
 				node.value = (expr.value === 0)*1;
 			}
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <expr-7> */
 		function testExpr7(node, escope) {
 			if (node._constant) {
 				testConstant(node._constant);
 				node.type = node._constant.type;
 				node.value = node._constant.value;
 				node.isConst = true;
-				return;
-			}
-			if (node._r_value) {
+			} else if (node._r_value) {
 				testRValue(node._r_value, escope);
-				if (error) return;
 				node.type = node._r_value.type;
 				node.value = node._r_value.value;
 				node.isConst = node._r_value.isConst;
-				return;
-			}
-			if (node._l_value) {
+			} else if (node._l_value) {
 				testLValue(node._l_value, escope);
-				if (error) return;
 				node.type = node._l_value.type;
 				node.value = node._l_value.value;
 				node.isConst = node._l_value.isConst;
-				return;
-			}
-			if (node._call) {
+			} else if (node._call) {
 				testCall(node._call, escope);
-				if (error) return;
 				node.type = node._call.type;
 			}
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <index-acess> */
 		function testIndexAcess(node, escope) {
 			var id = nodeToString(node._id);
 			var obj = escope.find(id);
@@ -625,6 +710,8 @@ var testSemantics;
 			}
 			node.type = type;
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <boolean> */
 		function testBoolean(node) {
 			if (node["has:@true"]) {
 				node.value = 1;
@@ -633,6 +720,8 @@ var testSemantics;
 			}
 			node.type = "@byte";
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <string> */
 		function testString(node) {
 			var str = nodeToString(node);
 			str = str.substr(0, str.length - 2);
@@ -644,26 +733,25 @@ var testSemantics;
 			node.value = value;
 			node.type = "@byte[" + value.length + "]";
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <constant> */
 		function testConstant(node) {
 			if (node._number) {
 				testNumber(node._number);
 				node.type = node._number.type;
 				node.value = node._number.value;
-				return;
-			}
-			if (node._boolean) {
+			} else if (node._boolean) {
 				testBoolean(node._boolean);
 				node.type = node._boolean.type;
 				node.value = node._boolean.value;
-				return;
-			}
-			if (node._string) {
+			} else if (node._string) {
 				testString(node._string);
 				node.type = node._string.type;
 				node.value = node._string.value;
-				return;
 			}
 		}
+		
+		/* Faz a análise semântica considerando um nó equivalente ao não terminal <number> */
 		function testNumber(node) {
 			var value = parseFloat(nodeToString(node));
 			if (node._decimal) {

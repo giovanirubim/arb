@@ -35,6 +35,7 @@ var analyzeCode;
 
 	var auto = new PDA();
 
+	// Envia as transições para o buffer
 	auto.addToBuffer(2,3,3,"","");
 	auto.addToBuffer(5,11,26,"","");
 	auto.addToBuffer(2,20,12,"","");
@@ -254,16 +255,28 @@ var analyzeCode;
 	auto.addToBuffer(33,23,33,"","");
 	auto.addToBuffer(35,23,35,"","");
 	auto.addToBuffer(36,23,36,"","");
+
+	// Resolve o buffer na estrutura de transições do autômato
 	auto.solveBuffer();
+
+	// Define os estados iniciais e finais
 	auto.setIni(1);
 	auto.addEnd(1);
 	auto.addEnd(26);
 
+	/* Implementação do método que executa as análises */
 	analyzeCode = function(src) {
+
+		/* Instante de início da análise */
 		var ini_time = new Date();
+		
 		auto.init();
 		for (var i=0; i<src.length;) {
+
+			/* Pega token por token da análise léxica */
 			var token = arbLex.getToken(src, i);
+
+			/* Detecta erro léxico */
 			if (token.fail) {
 				return {
 					time: new Date() - ini_time,
@@ -273,6 +286,8 @@ var analyzeCode;
 					pos: token.lastPos
 				};
 			}
+
+			/* Alimenta o autômato da análise sintática com o token, detecta erro sintático */
 			if (!auto.read(stateToCode[token.state])) {
 				return {
 					time: new Date() - ini_time,
@@ -284,6 +299,8 @@ var analyzeCode;
 			}
 			i = token.nextPos;
 		}
+
+		/* Verifica se o autômato aceita a sequência de tokens extraídos */
 		if (!auto.accepts()) {
 			return {
 				time: new Date() - ini_time,
@@ -293,8 +310,14 @@ var analyzeCode;
 				pos: src.length
 			};
 		}
+
+		/* Gera a árvore sintática a partir do código fonte */
 		var tree = getTree(src);
+
+		/* Faz a análise semântica da árvore */
 		var semanticError = testSemantics(tree);
+
+		/* Detecta erro semântico */
 		if (semanticError) {
 			var node = semanticError.node;
 			return {
@@ -307,6 +330,8 @@ var analyzeCode;
 				message: semanticError.message
 			};
 		}
+
+		/* Nenhum erro */
 		return {
 			time: new Date() - ini_time,
 			error: false,
