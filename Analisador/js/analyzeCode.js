@@ -1,9 +1,9 @@
-// Função que realiza a análise léxica e sintática de um código em Arb
+/* Função que realiza a análise léxica e sintática de um código em Arb */
 var analyzeCode;
 
 (function(){
 
-	// Tradução do estado final do autômato da análise léxica para o código do token
+	/* Tradução do estado final do autômato da análise léxica para o código do token */
 	var stateToCode = {
 		"1":  "1",
 		"2":  "2",
@@ -35,7 +35,7 @@ var analyzeCode;
 
 	var auto = new PDA();
 
-	// Envia as transições para o buffer
+	/* Envia as transições para o buffer */
 	auto.addToBuffer(2,3,3,"","");
 	auto.addToBuffer(5,11,26,"","");
 	auto.addToBuffer(2,20,12,"","");
@@ -256,10 +256,10 @@ var analyzeCode;
 	auto.addToBuffer(35,23,35,"","");
 	auto.addToBuffer(36,23,36,"","");
 
-	// Resolve o buffer na estrutura de transições do autômato
+	/* Resolve o buffer na estrutura de transições do autômato */
 	auto.solveBuffer();
 
-	// Define os estados iniciais e finais
+	/* Define os estados iniciais e finais */
 	auto.setIni(1);
 	auto.addEnd(1);
 	auto.addEnd(26);

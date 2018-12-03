@@ -1,4 +1,4 @@
-// Autômato que realiza a análise léxica da linguagem Arb
+/* Autômato que realiza a análise léxica da linguagem Arb */
 var arbLex;
 
 /* Gera o autômato arbLax */

@@ -2,18 +2,17 @@ var getTree;
 
 (function(){
 
-	// Código fonte atual
+	/* Código fonte atual */
 	var src = "";
 
-	// Mapas auxiliares
-	var call_count = 0;
+	/* Mapas auxiliares */
 	var isSpace = {" ": true, "\t": true, "\n": true}
 	var isIdHead = {"_": true};
 	var isIdBody = {"_": true};
 	var isConstantHead = {'"': true, "@": true};
 	var isDigit = {};
 
-	// Preenchimento dos mapas
+	/* Preenchimento dos mapas */
 	for (var i=0; i<26; ++i) {
 		var chr;
 		isIdHead[chr = String.fromCharCode(65+i)] = true;
@@ -27,7 +26,7 @@ var getTree;
 		isDigit[i] = true;
 	}
 
-	// Contador de elementos da árvore sintática
+	/* Contador de elementos da árvore sintática */
 	function nodeCount(node) {
 		if (typeof node === "string") {
 			return 1;
@@ -37,10 +36,9 @@ var getTree;
 		return t;
 	}
 
-	// Funções geradoras da derivação da árvore sintática
+	/* Funções geradoras da derivação da árvore sintática */
 
 	function read_program(i) {
-		++ call_count;
 		var s_left = read_s(i);
 		var cmd_list = read_cmd_list(i + s_left.length);
 		if (!cmd_list) {
@@ -60,7 +58,6 @@ var getTree;
 		};
 	}
 	function read_s(i) {
-		++ call_count;
 		var l = 0;
 		while (isSpace[src[i+l]]) ++l;
 		if (!l) {
@@ -97,7 +94,6 @@ var getTree;
 		return root;
 	}
 	function read_cmd_list(i) {
-		++ call_count;
 		var cmd = read_cmd(i);
 		if (!cmd) {
 			return null;
@@ -120,7 +116,6 @@ var getTree;
 		};
 	}
 	function read_cmd(i) {
-		++ call_count;
 		var first = src[i];
 		var obj;
 		if (isIdHead[first]) {
@@ -158,7 +153,6 @@ var getTree;
 		};
 	}
 	function read_cmd_assign(i, id) {
-		++ call_count;
 		var assign = read_assign(i, id);
 		if (assign) {
 			var str = read_s(i + assign.length);
@@ -174,7 +168,6 @@ var getTree;
 		}
 	}
 	function read_cmd_call(i, id) {
-		++ call_count;
 		var call = read_call(i, id);
 		if (call) {
 			var str = read_s(i + call.length);
@@ -190,7 +183,6 @@ var getTree;
 		}
 	}
 	function read_declare(i, type) {
-		++ call_count;
 		if (!type) {
 			return null;
 		}
@@ -211,7 +203,6 @@ var getTree;
 		}
 	}
 	function read_fork(i) {
-		++ call_count;
 		var head = read_fork_head(i);
 		if (!head) {
 			return null;
@@ -233,7 +224,6 @@ var getTree;
 		}
 	}
 	function read_loop(i) {
-		++ call_count;
 		if (src.substr(i, 5) !== "@loop") {
 			return null;
 		}
@@ -253,7 +243,6 @@ var getTree;
 		}
 	}
 	function read_break(i) {
-		++ call_count;
 		if (src.substr(i, 6) !== "@break") {
 			return null;
 		}
@@ -281,7 +270,6 @@ var getTree;
 		}
 	}
 	function read_assign(i, id) {
-		++ call_count;
 		var l_value = read_l_value(i, id);
 		if (!l_value) {
 			return null;
@@ -303,7 +291,6 @@ var getTree;
 		}
 	}
 	function read_call(i, id) {
-		++ call_count;
 		if (!id) {
 			id = read_id(i);
 		}
@@ -341,7 +328,6 @@ var getTree;
 		}
 	}
 	function read_type(i) {
-		++ call_count;
 		var ptype = read_primitive_type(i);
 		if (!ptype) {
 			return null;
@@ -355,7 +341,6 @@ var getTree;
 		};
 	}
 	function read_declare_list(i) {
-		++ call_count;
 		var item = read_declare_item(i);
 		if (!item) {
 			return null;
@@ -382,7 +367,6 @@ var getTree;
 		};
 	}
 	function read_fork_head(i) {
-		++ call_count;
 		var c = src[i];
 		if (c !== "(") {
 			return null;
@@ -409,7 +393,6 @@ var getTree;
 		}
 	}
 	function read_fork_body(i) {
-		++ call_count;
 		var case_true = read_case_true(i);
 		if (!case_true) {
 			var case_false = read_case_false(i);
@@ -441,7 +424,6 @@ var getTree;
 		};
 	}
 	function read_function(i, type) {
-		++ call_count;
 		if (!type) {
 			return null;
 		}
@@ -512,7 +494,6 @@ var getTree;
 		}
 	}
 	function read_int(i) {
-		++ call_count;
 		if (!isDigit[src[i]]) {
 			return null;
 		}
@@ -534,7 +515,6 @@ var getTree;
 		};
 	}
 	function read_l_value(i, id) {
-		++ call_count;
 		var str = src.substr(i, 7);
 		if (str === "@return") {
 			return {
@@ -562,7 +542,6 @@ var getTree;
 		};
 	}
 	function read_r_value(i) {
-		++ call_count;
 		var child;
 		var first = src[i];
 		if (isIdHead[first] || src.substr(i, 7) === "@return") {
@@ -581,7 +560,6 @@ var getTree;
 		}
 	}
 	function read_id(i) {
-		++ call_count;
 		var head = read_id_head(i);
 		if (!head) {
 			return null;
@@ -603,7 +581,6 @@ var getTree;
 		};
 	}
 	function read_call_args(i) {
-		++ call_count;
 		var r_value = read_r_value(i);
 		if (!r_value) {
 			return null;
@@ -630,7 +607,6 @@ var getTree;
 		};
 	}
 	function read_primitive_type(i) {
-		++ call_count;
 		var str = src.substr(i, 4);
 		if (str !== "@int") {
 			str = src.substr(i, 5);
@@ -646,7 +622,6 @@ var getTree;
 		};
 	}
 	function read_array_type(i, ptype) {
-		++ call_count;
 		if (!ptype) {
 			return null;
 		}
@@ -672,7 +647,6 @@ var getTree;
 		}
 	}
 	function read_declare_item(i) {
-		++ call_count;
 		var id = read_id(i);
 		if (!id) {
 			return null;
@@ -699,7 +673,6 @@ var getTree;
 		};
 	}
 	function read_case_true(i) {
-		++ call_count;
 		var str = src.substr(i, 5);
 		if (str !== "@true") {
 			return null;
@@ -721,7 +694,6 @@ var getTree;
 		}
 	}
 	function read_case_false(i) {
-		++ call_count;
 		var str = src.substr(i, 6);
 		if (str !== "@false") {
 			return null;
@@ -743,7 +715,6 @@ var getTree;
 		}
 	}
 	function read_args(i) {
-		++ call_count;
 		var type = read_type(i);
 		if (!type) {
 			return null;
@@ -775,7 +746,6 @@ var getTree;
 		};
 	}
 	function read_digit(i) {
-		++ call_count;
 		var c = src[i];
 		if (c >= "0" && c <= "9") {
 			return {
@@ -787,7 +757,6 @@ var getTree;
 		}
 	}
 	function read_index_access(i, id) {
-		++ call_count;
 		if (!id) {
 			id = read_id(i);
 		}
@@ -816,7 +785,6 @@ var getTree;
 		}
 	}
 	function read_expr_1(i) {
-		++ call_count;
 		var expr = read_expr_2(i);
 		if (!expr) {
 			return null;
@@ -849,7 +817,6 @@ var getTree;
 		return node;
 	}
 	function read_id_head(i) {
-		++ call_count;
 		var chr = src[i];
 		if (chr !== "_") {
 			chr = read_letter(i);
@@ -865,7 +832,6 @@ var getTree;
 		};
 	}
 	function read_id_body(i) {
-		++ call_count;
 		var chr = read_id_body_chr(i);
 		if (isIdBody[src[i+1]]) {
 			var right = read_id_body(i + chr.length);
@@ -884,7 +850,6 @@ var getTree;
 		};
 	}
 	function read_opr_1(i) {
-		++ call_count;
 		if (src[i] === "|") {
 			return {
 				pos: i,
@@ -895,7 +860,6 @@ var getTree;
 		}
 	}
 	function read_expr_2(i) {
-		++ call_count;
 		var expr = read_expr_3(i);
 		if (!expr) {
 			return null;
@@ -928,7 +892,6 @@ var getTree;
 		return node;
 	}
 	function read_letter(i) {
-		++ call_count;
 		var c = src[i];
 		if (c >= "a" && c <= "z" || c >= "A" && c <= "Z") {
 			return {
@@ -940,7 +903,6 @@ var getTree;
 		}
 	}
 	function read_id_body_chr(i) {
-		++ call_count;
 		var first = src[i];
 		var child;
 		if (isIdHead[first]) {
@@ -958,7 +920,6 @@ var getTree;
 		}
 	}
 	function read_opr_2(i) {
-		++ call_count;
 		if (src[i] === "&") {
 			return {
 				pos: i,
@@ -969,7 +930,6 @@ var getTree;
 		}
 	}
 	function read_expr_3(i) {
-		++ call_count;
 		var expr = read_expr_4(i);
 		if (!expr) {
 			return null;
@@ -1002,7 +962,6 @@ var getTree;
 		return node;
 	}
 	function read_opr_3(i) {
-		++ call_count;
 		var str = src.substr(i, 2);
 		if (str === "<=" || str === ">=" || str === "!=") {
 			return {
@@ -1023,7 +982,6 @@ var getTree;
 		}
 	}
 	function read_expr_4(i) {
-		++ call_count;
 		var expr = read_expr_5(i);
 		if (!expr) {
 			return null;
@@ -1056,7 +1014,6 @@ var getTree;
 		return node;
 	}
 	function read_opr_4(i) {
-		++ call_count;
 		var c = src[i];
 		if (c === "+" || c === "-") {
 			return {
@@ -1068,7 +1025,6 @@ var getTree;
 		}
 	}
 	function read_expr_5(i) {
-		++ call_count;
 		var expr = read_expr_6(i);
 		if (!expr) {
 			return null;
@@ -1101,7 +1057,6 @@ var getTree;
 		return node;
 	}
 	function read_opr_5(i) {
-		++ call_count;
 		var c = src[i];
 		if (c === "*" || c === "/" || c === "%") {
 			return {
@@ -1113,7 +1068,6 @@ var getTree;
 		}
 	}
 	function read_expr_6(i) {
-		++ call_count;
 		var first = src[i];
 		var prefix, s;
 		if (first === "'" || first === "-") {
@@ -1135,7 +1089,6 @@ var getTree;
 		}
 	}
 	function read_expr_7(i) {
-		++ call_count;
 		var left = src[i];
 		if (left === "(") {
 			var s1 = read_s(i + 1);
@@ -1176,7 +1129,6 @@ var getTree;
 		}
 	}
 	function read_prefix(i) {
-		++ call_count;
 		var c = src[i];
 		if (c === "'" || c === "-") {
 			return {
@@ -1188,7 +1140,6 @@ var getTree;
 		}
 	}
 	function read_constant(i) {
-		++ call_count;
 		var first = src[i];
 		var child;
 		if (first === '"') {
@@ -1211,7 +1162,6 @@ var getTree;
 		}
 	}
 	function read_string(i) {
-		++ call_count;
 		var left = src[i];
 		if (left !== "\"") {
 			return null;
@@ -1228,7 +1178,6 @@ var getTree;
 		}
 	}
 	function read_number(i) {
-		++ call_count;
 		var int1 = read_int(i);
 		if (!int1) {
 			return null;
@@ -1264,7 +1213,6 @@ var getTree;
 		};
 	}
 	function read_boolean(i) {
-		++ call_count;
 		if (src.substr(i, 5) === "@true") {
 			return {
 				pos: i,
@@ -1283,7 +1231,6 @@ var getTree;
 		}
 	}
 	function read_string_content(i) {
-		++ call_count;
 		var chr = read_text_char(i);
 		if (!chr) {
 			return {
@@ -1302,7 +1249,6 @@ var getTree;
 		};
 	}
 	function read_decimal(i) {
-		++ call_count;
 		var int1 = read_int(i);
 		if (!int1) {
 			return null;
@@ -1323,7 +1269,6 @@ var getTree;
 		};
 	}
 	function read_text_char(i) {
-		++ call_count;
 		var c = src[i];
 		if (c === "\"") {
 			return null;
@@ -1339,10 +1284,9 @@ var getTree;
 		}
 	}
 
-	// Gera a árvore sintática
+	/* Gera a árvore sintática */
 	getTree = function(source) {
 		src = source;
-		call_count = 0;
 		var r = read_program(0);
 		return r;
 	};
