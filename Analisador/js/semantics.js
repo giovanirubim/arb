@@ -116,6 +116,14 @@ var testSemantics;
 		return str;
 	}
 
+	function removeSpaces(str) {
+		var res = "";
+		for (var i=0; i<str.length; ++i) {
+			if (str[i] !== " ") res += str[i];
+		}
+		return res;
+	}
+
 	testSemantics = function(tree) {
 		
 		/* Pré-processa a árvore para um acesso mais fácil aos nós filhos */
@@ -226,7 +234,7 @@ var testSemantics;
 		 * Insere no vetor idList uma lista de identificadores dos parâmetros lidos */
 		function testArgs(node, escope, typeList, idList) {
 			while (node) {
-				var type = nodeToString(node._type);
+				var type = removeSpaces(nodeToString(node._type));
 				var id = nodeToString(node._id);
 				if (idList.indexOf(id) >= 0) {
 					error = {
@@ -245,7 +253,7 @@ var testSemantics;
 		/* Faz a análise semântica considerando um nó equivalente ao não terminal <function-args> */
 		function testFunctionArgs(node, escope) {
 			var id = nodeToString(node._id);
-			var type = nodeToString(node._type);
+			var type = removeSpaces(nodeToString(node._type));
 			var typeList = [];
 			var idList = [];
 			escope.add(id, {isFunction: true, args: typeList, type: type});
@@ -264,7 +272,7 @@ var testSemantics;
 		
 		/* Faz a análise semântica considerando um nó equivalente ao não terminal <declare> */
 		function testDeclare(node, escope) {
-			var type = nodeToString(node._type);
+			var type = removeSpaces(nodeToString(node._type));
 			testDeclareList(node._declare_list, escope, type);
 		}
 		
