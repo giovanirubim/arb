@@ -174,6 +174,12 @@ var testSemantics;
 		/* Faz a análise semântica considerando um nó equivalente ao não terminal <fork-head> */
 		function testForkHead(node, escope) {
 			testRValue(node._r_value, escope);
+			if (!isNumeric[node._r_value.type]) {
+				error = {
+					node: node._r_value,
+					message: "Fork requires a numeric value"
+				};
+			}
 		}
 		
 		/* Faz a análise semântica considerando um nó equivalente ao não terminal <fork-body> */
